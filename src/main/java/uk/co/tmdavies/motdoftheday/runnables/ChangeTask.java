@@ -1,7 +1,6 @@
 package uk.co.tmdavies.motdoftheday.runnables;
 
 import net.minecraft.server.MinecraftServer;
-import uk.co.tmdavies.motdoftheday.utils.MOTDConfig;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.util.List;
@@ -18,22 +17,16 @@ public class ChangeTask extends TimerTask {
 
     @Override
     public void run() {
+        MOTDoftheDay.isTimerRunning = true;
+
         if (this.server.isCurrentlySaving() || this.server.isShutdown() || this.server.isStopped()) {
+            MOTDoftheDay.LOGGER.info("Server is closing/closed. Cancelling MOTD change.");
             this.cancel();
 
             return;
         }
 
-        MOTDoftheDay.LOGGER.info("Changing MOTD...");
-
-        if (this.server == null) {
-            MOTDoftheDay.LOGGER.error("Failed to grab server. Cancelling MOTD change.");
-            this.cancel();
-
-            return;
-        }
-
-        List<String> motdList = (List<String>) MOTDConfig.MOTD_STRINGS.get();
+        List<String> motdList = MOTDoftheDay.CONFIG.getMessages();
         String newMotd = motdList.get(ThreadLocalRandom.current().nextInt(motdList.size()-1));
         newMotd = newMotd.replace('&', '§');
 

@@ -6,39 +6,80 @@ import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConfigFile {
 
     private final String path;
+    private final String fileName;
+    private File file;
 
     private JsonObject jsonObj;
 
-    public ConfigFile(String path) {
-        this.path = path;
+    public ConfigFile(String name) {
+        if (!name.endsWith(".json")) {
+            name = name + ".json";
+        }
+
+        Path validatePath = Paths.get("").toAbsolutePath();
+
+        this.path = validatePath.toAbsolutePath() + "\\config\\motdoftheday";
+        this.fileName = name;
+        this.file = new File(this.path + "\\" + this.fileName);
+
+        MOTDoftheDay.LOGGER.error("Current Path: {}", this.path + "\\" + this.fileName);
 
         checkDir();
-        loadConfig();
+        checkFile();
     }
 
     public void checkDir() {
-        File dir = new File("config/motdoftheday");
+        File dir = new File(this.path);
 
         if (!dir.exists()) {
             dir.mkdir();
         }
     }
 
-    public void loadConfig() {
-        try (FileInputStream inputStream = new FileInputStream(this.path)) {
-            this.jsonObj = JsonParser.parseString(IOUtils.toString(inputStream, Charset.defaultCharset())).getAsJsonObject();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    public void checkFile() {
+        if (file.exists()) {
+            return;
         }
 
-        if (this.jsonObj.isEmpty()) {
+        try {
+            file.createNewFile();
+        } catch (IOException exception) {
+            MOTDoftheDay.LOGGER.error("Error creating config file.");
+            exception.printStackTrace();
+        }
+    }
+
+    public void loadConfig() {
+        this.file = new File(this.path + "\\" + this.fileName);
+
+        if (file.length() == 0) {
+            setDefaults();
+
+            return;
+        }
+
+        try (FileInputStream inputStream = new FileInputStream(this.path + "\\" + this.fileName)) {
+
+            this.jsonObj = JsonParser.parseString(IOUtils.toString(inputStream, Charset.defaultCharset())).getAsJsonObject();
+        } catch (IOException e) {
+            MOTDoftheDay.LOGGER.error("Error loading config file. Continuing to create new...");
+        }
+
+        if (this.jsonObj == null || this.jsonObj.isEmpty()) {
             setDefaults();
         }
+
+        MOTDoftheDay.runChangeTask(MOTDoftheDay.server, getChangeInterval());
+
+        verboseConfig();
     }
 
     public void setDefaults() {
@@ -58,7 +99,7 @@ public class ConfigFile {
 
         this.jsonObj.add("MOTD", motdSettings);
 
-        try (Writer writer = new FileWriter(Paths.get("config/motdoftheday/config.json").toAbsolutePath().toString())) {
+        try (Writer writer = new FileWriter(this.path + "\\" + this.fileName)) {
             writer.write(this.jsonObj.toString());
         } catch (IOException exception) {
             MOTDoftheDay.LOGGER.error("Failed to write json file defaults.");
@@ -84,6 +125,59 @@ public class ConfigFile {
         }
 
         return jsonObj.get(path);
+    }
+
+    public boolean isModEnabled() {
+        if (jsonObj == null) {
+            MOTDoftheDay.LOGGER.error("Config was not loaded before grabbing data.");
+
+            return true;
+        }
+
+        return jsonObj.get("Enabled").getAsBoolean();
+    }
+
+    public int getChangeInterval() {
+        if (jsonObj == null) {
+            MOTDoftheDay.LOGGER.error("Config was not loaded before grabbing data.");
+
+            return Integer.MAX_VALUE;
+        }
+
+        JsonObject motdSettings = jsonObj.getAsJsonObject("MOTD");
+
+        return motdSettings.get("Interval").getAsInt();
+    }
+
+    public List<String> getMessages() {
+        if (jsonObj == null) {
+            MOTDoftheDay.LOGGER.error("Config was not loaded before grabbing data.");
+
+            return null;
+        }
+
+        JsonObject motdSettings = jsonObj.getAsJsonObject("MOTD");
+        JsonArray messagesArray = motdSettings.get("Messages").getAsJsonArray();
+        List<String> messages = new ArrayList<>();
+
+        messagesArray.forEach(message -> messages.add(message.getAsString()));
+
+        return messages;
+    }
+
+    public void verboseConfig() {
+        if (jsonObj == null) {
+            return;
+        }
+
+        boolean isModEnabled = isModEnabled();
+        int changeInterval = getChangeInterval();
+        List<String> messages = getMessages();
+
+        MOTDoftheDay.LOGGER.info("Config Details:");
+        MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled);
+        MOTDoftheDay.LOGGER.info("ChangeInterval: " + changeInterval);
+        MOTDoftheDay.LOGGER.info("Messages: " + messages);
     }
 
 }
