@@ -1,36 +1,27 @@
 package uk.co.tmdavies.motdoftheday;
 
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
 
-// An example config class. This is not required, but it's a good idea to have one to keep your config organized.
-// Demonstrates how to use Neo's config APIs
 public class MOTDConfig {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
-    public static final ModConfigSpec.BooleanValue LOG_DIRT_BLOCK = BUILDER
-            .comment("Whether to log the dirt block on common setup")
-            .define("logDirtBlock", true);
+    public static final ModConfigSpec.BooleanValue ENABLED = BUILDER
+            .comment("Enable the MOTD Changer?")
+            .define("Enabled", true);
 
-    public static final ModConfigSpec.IntValue MAGIC_NUMBER = BUILDER
-            .comment("A magic number")
-            .defineInRange("magicNumber", 42, 0, Integer.MAX_VALUE);
+    public static final ModConfigSpec.LongValue CHANGE_TIME = BUILDER
+            .comment("The interval which the MOTD changes (in seconds)")
+            .defineInRange("MOTD.Change-Interval", 86400, 0, Long.MAX_VALUE);
 
-    public static final ModConfigSpec.ConfigValue<String> MAGIC_NUMBER_INTRODUCTION = BUILDER
-            .comment("What you want the introduction message to be for the magic number")
-            .define("magicNumberIntroduction", "The magic number is... ");
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> MOTD_STRINGS = BUILDER
+            .comment("All the MOTDs you want to use")
+            .defineListAllowEmpty("MOTD.List", List.of("MOTD", "Here", "Bozo", "xoxo"), () -> "", MOTDConfig::validateString);
+    
+    public static final ModConfigSpec SPEC = BUILDER.build();
 
-    // a list of strings that are treated as resource locations for items
-    public static final ModConfigSpec.ConfigValue<List<? extends String>> ITEM_STRINGS = BUILDER
-            .comment("A list of items to log on common setup.")
-            .defineListAllowEmpty("items", List.of("minecraft:iron_ingot"), () -> "", MOTDConfig::validateItemName);
-
-    static final ModConfigSpec SPEC = BUILDER.build();
-
-    private static boolean validateItemName(final Object obj) {
-        return obj instanceof String itemName && BuiltInRegistries.ITEM.containsKey(ResourceLocation.parse(itemName));
+    private static boolean validateString(final Object obj) {
+        return obj instanceof String;
     }
 }
