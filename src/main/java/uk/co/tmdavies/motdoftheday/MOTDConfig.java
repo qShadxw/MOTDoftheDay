@@ -11,9 +11,9 @@ public class MOTDConfig {
             .comment("Enable the MOTD Changer?")
             .define("Enabled", true);
 
-    public static final ModConfigSpec.LongValue CHANGE_TIME = BUILDER
-            .comment("The interval which the MOTD changes (in seconds)")
-            .defineInRange("MOTD.Change-Interval", 86400, 0, Long.MAX_VALUE);
+    public static final ModConfigSpec.IntValue CHANGE_TIME = BUILDER
+            .comment("The interval which the MOTD changes (in milliseconds)")
+            .defineInRange("MOTD.Change-Interval", 86400000, 0, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.ConfigValue<List<? extends String>> MOTD_STRINGS = BUILDER
             .comment("All the MOTDs you want to use")

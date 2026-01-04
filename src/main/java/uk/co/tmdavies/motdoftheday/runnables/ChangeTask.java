@@ -5,13 +5,14 @@ import uk.co.tmdavies.motdoftheday.MOTDConfig;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.util.List;
+import java.util.TimerTask;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class ChangeRunnable implements Runnable {
+public class ChangeTask extends TimerTask {
 
     private final MinecraftServer server;
 
-    public ChangeRunnable(MinecraftServer server) {
+    public ChangeTask(MinecraftServer server) {
         this.server = server;
     }
 
@@ -21,11 +22,13 @@ public class ChangeRunnable implements Runnable {
 
         if (this.server == null) {
             MOTDoftheDay.LOGGER.error("Failed to grab server. Cancelling MOTD change.");
+            this.cancel();
+
             return;
         }
 
         List<String> motdList = (List<String>) MOTDConfig.MOTD_STRINGS.get();
-        String newMotd = motdList.get(ThreadLocalRandom.current().nextInt(motdList.size())-1);
+        String newMotd = motdList.get(ThreadLocalRandom.current().nextInt(motdList.size()-1));
 
         MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMotd);
 
@@ -33,13 +36,6 @@ public class ChangeRunnable implements Runnable {
             this.server.setMotd(newMotd);
         } catch (RuntimeException exception) {
             MOTDoftheDay.LOGGER.error("Failed to change MOTD.");
-            exception.printStackTrace();
-        }
-
-        try {
-            Thread.sleep(MOTDConfig.CHANGE_TIME.get());
-        } catch (InterruptedException exception) {
-            MOTDoftheDay.LOGGER.error("Failed to sleep thread.");
             exception.printStackTrace();
         }
     }
