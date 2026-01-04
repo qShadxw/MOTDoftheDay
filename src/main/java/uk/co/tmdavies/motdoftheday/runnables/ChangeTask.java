@@ -1,7 +1,7 @@
 package uk.co.tmdavies.motdoftheday.runnables;
 
 import net.minecraft.server.MinecraftServer;
-import uk.co.tmdavies.motdoftheday.MOTDConfig;
+import uk.co.tmdavies.motdoftheday.utils.MOTDConfig;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.util.List;
@@ -18,6 +18,12 @@ public class ChangeTask extends TimerTask {
 
     @Override
     public void run() {
+        if (this.server.isCurrentlySaving() || this.server.isShutdown() || this.server.isStopped()) {
+            this.cancel();
+
+            return;
+        }
+
         MOTDoftheDay.LOGGER.info("Changing MOTD...");
 
         if (this.server == null) {
@@ -29,6 +35,7 @@ public class ChangeTask extends TimerTask {
 
         List<String> motdList = (List<String>) MOTDConfig.MOTD_STRINGS.get();
         String newMotd = motdList.get(ThreadLocalRandom.current().nextInt(motdList.size()-1));
+        newMotd = newMotd.replace('&', '§');
 
         MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMotd);
 

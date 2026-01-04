@@ -12,6 +12,8 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
+import uk.co.tmdavies.motdoftheday.utils.ConfigWatcher;
+import uk.co.tmdavies.motdoftheday.utils.MOTDConfig;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -22,8 +24,10 @@ public class MOTDoftheDay {
     public static final String MODID = "motdoftheday";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static TimerTask changeRunnable;
-    public static Timer timer = new Timer();
+    public TimerTask changeRunnable;
+    public Timer timer = new Timer();
+
+    private ConfigWatcher watcher;
 
     public MOTDoftheDay(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
@@ -35,6 +39,9 @@ public class MOTDoftheDay {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Loading MOTDoftheDay...");
+
+        watcher = new ConfigWatcher("config");
+        watcher.watchFile();
     }
 
     @SubscribeEvent

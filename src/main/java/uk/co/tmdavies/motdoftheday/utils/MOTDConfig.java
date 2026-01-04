@@ -1,4 +1,4 @@
-package uk.co.tmdavies.motdoftheday;
+package uk.co.tmdavies.motdoftheday.utils;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
