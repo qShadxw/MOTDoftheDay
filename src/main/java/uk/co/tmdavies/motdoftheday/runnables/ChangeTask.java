@@ -17,8 +17,6 @@ public class ChangeTask extends TimerTask {
 
     @Override
     public void run() {
-        MOTDoftheDay.isTimerRunning = true;
-
         if (this.server.isCurrentlySaving() || this.server.isShutdown() || this.server.isStopped()) {
             MOTDoftheDay.LOGGER.info("Server is closing/closed. Cancelling MOTD change.");
             this.cancel();

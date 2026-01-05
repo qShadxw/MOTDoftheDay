@@ -23,12 +23,11 @@ public class MOTDoftheDay {
 
     public static final String MODID = "motdoftheday";
     public static final Logger LOGGER = LogUtils.getLogger();
-    public static Timer timer = new Timer();
 
     public static ConfigFile CONFIG;
     public static TimerTask changeRunnable;
-    public static MinecraftServer server;
-    public static boolean isTimerRunning;
+    public static boolean firstTime = true;
+    public static Timer timer = new Timer();
 
     private ConfigWatcher watcher;
 
@@ -42,7 +41,6 @@ public class MOTDoftheDay {
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Loading MOTDoftheDay...");
 
-        isTimerRunning = false;
         CONFIG = new ConfigFile("config");
         watcher = new ConfigWatcher("config\\motdoftheday");
 
@@ -70,19 +68,14 @@ public class MOTDoftheDay {
             return;
         }
 
-        server = event.getServer();
+        changeRunnable = new ChangeTask(event.getServer());
+
         CONFIG.loadConfig();
+        timer.scheduleAtFixedRate(changeRunnable, 0, CONFIG.getChangeInterval());
     }
 
-    public static void runChangeTask(MinecraftServer server, int changeInterval) {
-        if (!isTimerRunning) {
-            timer.cancel();
-
-            isTimerRunning = true;
-        }
-
-        changeRunnable = new ChangeTask(server);
-
+    public static void runChangeTask(int changeInterval) {
+        timer.cancel();
         timer.scheduleAtFixedRate(changeRunnable, 0, changeInterval);
     }
 }

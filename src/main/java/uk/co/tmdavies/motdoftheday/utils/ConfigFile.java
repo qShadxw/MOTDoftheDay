@@ -77,7 +77,11 @@ public class ConfigFile {
             setDefaults();
         }
 
-        MOTDoftheDay.runChangeTask(MOTDoftheDay.server, getChangeInterval());
+        if (MOTDoftheDay.firstTime) {
+            MOTDoftheDay.firstTime = false;
+        } else {
+            MOTDoftheDay.runChangeTask(getChangeInterval());
+        }
 
         verboseConfig();
     }

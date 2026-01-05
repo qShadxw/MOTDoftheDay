@@ -8,6 +8,8 @@ import java.nio.file.*;
 public class ConfigWatcher {
 
     private final Path path;
+    private static final long DEBOUNCE_MS = 200;
+    private volatile long lastModified = 0;
 
     public ConfigWatcher(String path) {
         this.path = Paths.get(path);
@@ -15,6 +17,7 @@ public class ConfigWatcher {
 
     public void watchFile() {
         try {
+            MOTDoftheDay.LOGGER.info("Starting Try");
             FileSystem fileSystem = FileSystems.getDefault();
             WatchService watchService = fileSystem.newWatchService();
 
@@ -29,8 +32,10 @@ public class ConfigWatcher {
 
                         for (WatchEvent<?> event : key.pollEvents()) {
                             Object context = event.context();
+
                             if (context.toString().equals("config.json")) {
                                 configFileChanged();
+                                break;
                             }
                         }
 
@@ -48,6 +53,14 @@ public class ConfigWatcher {
     }
 
     public void configFileChanged() {
+        long now = System.currentTimeMillis();
+
+        if (now - lastModified < DEBOUNCE_MS) {
+            return;
+        }
+
+        lastModified = now;
+
         MOTDoftheDay.LOGGER.info("Config File Modified");
         MOTDoftheDay.CONFIG.loadConfig();
     }
