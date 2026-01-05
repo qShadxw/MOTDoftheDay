@@ -30,8 +30,6 @@ public class ConfigFile {
         this.fileName = name;
         this.file = new File(this.path + "\\" + this.fileName);
 
-        MOTDoftheDay.LOGGER.error("Current Path: {}", this.path + "\\" + this.fileName);
-
         checkDir();
         checkFile();
     }
@@ -67,7 +65,6 @@ public class ConfigFile {
         }
 
         try (FileInputStream inputStream = new FileInputStream(this.path + "\\" + this.fileName)) {
-
             this.jsonObj = JsonParser.parseString(IOUtils.toString(inputStream, Charset.defaultCharset())).getAsJsonObject();
         } catch (IOException e) {
             MOTDoftheDay.LOGGER.error("Error loading config file. Continuing to create new...");
@@ -77,12 +74,7 @@ public class ConfigFile {
             setDefaults();
         }
 
-        if (MOTDoftheDay.firstTime) {
-            MOTDoftheDay.firstTime = false;
-        } else {
-            MOTDoftheDay.runChangeTask(getChangeInterval());
-        }
-
+        MOTDoftheDay.runChangeTask(getChangeInterval());
         verboseConfig();
     }
 

@@ -1,39 +1,35 @@
 package uk.co.tmdavies.motdoftheday.runnables;
 
-import net.minecraft.server.MinecraftServer;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.util.List;
-import java.util.TimerTask;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class ChangeTask extends TimerTask {
+public class ChangeTask implements Runnable {
 
-    private final MinecraftServer server;
+    private final ThreadLocalRandom random;
 
-    public ChangeTask(MinecraftServer server) {
-        this.server = server;
+    public ChangeTask() {
+        this.random =  ThreadLocalRandom.current();
     }
 
     @Override
     public void run() {
-        if (this.server.isCurrentlySaving() || this.server.isShutdown() || this.server.isStopped()) {
-            MOTDoftheDay.LOGGER.info("Server is closing/closed. Cancelling MOTD change.");
-            this.cancel();
-
-            return;
-        }
-
-        List<String> motdList = MOTDoftheDay.CONFIG.getMessages();
-        String newMotd = motdList.get(ThreadLocalRandom.current().nextInt(motdList.size()-1));
-        newMotd = newMotd.replace('&', '§');
-
-        MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMotd);
-
         try {
-            this.server.setMotd(newMotd);
-        } catch (RuntimeException exception) {
-            MOTDoftheDay.LOGGER.error("Failed to change MOTD.");
+            List<String> messages = MOTDoftheDay.configFile.getMessages();
+
+            if (messages == null || messages.isEmpty()) {
+                MOTDoftheDay.LOGGER.warn("No messages found in config for ChangeTask.");
+                return;
+            }
+
+            int index = random.nextInt(messages.size());
+            String newMOTD = messages.get(index);
+
+            MOTDoftheDay.setMotd(newMOTD);
+            MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMOTD);
+        } catch (Exception exception) {
+            MOTDoftheDay.LOGGER.error("Error in ChangeTask");
             exception.printStackTrace();
         }
     }

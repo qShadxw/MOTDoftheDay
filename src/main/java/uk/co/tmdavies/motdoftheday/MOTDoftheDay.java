@@ -8,15 +8,16 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
 import uk.co.tmdavies.motdoftheday.utils.ConfigFile;
 import uk.co.tmdavies.motdoftheday.utils.ConfigWatcher;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Mod(MOTDoftheDay.MODID)
 public class MOTDoftheDay {
@@ -24,13 +25,18 @@ public class MOTDoftheDay {
     public static final String MODID = "motdoftheday";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static ConfigFile CONFIG;
-    public static TimerTask changeRunnable;
-    public static boolean firstTime = true;
-    public static Timer timer = new Timer();
+    private static final ScheduledExecutorService SCHEDULER =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread changeTaskThread = new Thread(r, "MOTD-ChangeTask");
+                changeTaskThread.setDaemon(true);
 
-    private ConfigWatcher watcher;
+                return changeTaskThread;
+            });
 
+    public static ConfigFile configFile;
+    public static MinecraftServer minecraftServer;
+
+    private static ScheduledFuture<?> changeTaskFuture;
 
     public MOTDoftheDay(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
@@ -41,41 +47,52 @@ public class MOTDoftheDay {
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Loading MOTDoftheDay...");
 
-        CONFIG = new ConfigFile("config");
-        watcher = new ConfigWatcher("config\\motdoftheday");
+        configFile = new ConfigFile("config");
+        ConfigWatcher watcher = new ConfigWatcher("config\\motdoftheday");
 
         watcher.watchFile();
     }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        // Checks if mod is running from a dedicated server, if not disable.
         if (!event.getServer().isDedicatedServer()) {
             LOGGER.error("MOTDoftheDay can only be ran on a dedicated server.");
 
             NeoForge.EVENT_BUS.unregister(this);
-            timer.cancel();
+            changeTaskFuture.cancel(true);
+            SCHEDULER.close();
 
             return;
         }
 
-        if (!CONFIG.isModEnabled()) {
+        if (!configFile.isModEnabled()) {
             LOGGER.error("MOTDoftheDay is enabled in config.");
 
             NeoForge.EVENT_BUS.unregister(this);
-            timer.cancel();
+            changeTaskFuture.cancel(true);
+            SCHEDULER.close();
 
             return;
         }
 
-        changeRunnable = new ChangeTask(event.getServer());
+        minecraftServer = event.getServer();
+        configFile.loadConfig();
+    }
 
-        CONFIG.loadConfig();
-        timer.scheduleAtFixedRate(changeRunnable, 0, CONFIG.getChangeInterval());
+    public static void setMotd(String newMotd) {
+        minecraftServer.setMotd(newMotd);
     }
 
     public static void runChangeTask(int changeInterval) {
-        timer.cancel();
-        timer.scheduleAtFixedRate(changeRunnable, 0, changeInterval);
+        if (changeTaskFuture != null && !changeTaskFuture.isCancelled()) {
+            changeTaskFuture.cancel(false);
+        }
+
+        changeTaskFuture = SCHEDULER.scheduleAtFixedRate(
+                new ChangeTask(),
+                0,
+                changeInterval,
+                TimeUnit.MILLISECONDS
+        );
     }
 }
