@@ -48,7 +48,7 @@ public class MOTDoftheDay {
         LOGGER.info("Loading MOTDoftheDay...");
 
         configFile = new ConfigFile("config");
-        ConfigWatcher watcher = new ConfigWatcher("config\\motdoftheday");
+        ConfigWatcher watcher = new ConfigWatcher("./config/motdoftheday");
 
         watcher.watchFile();
     }

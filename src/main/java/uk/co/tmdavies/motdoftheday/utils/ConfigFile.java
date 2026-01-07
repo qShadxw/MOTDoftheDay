@@ -1,13 +1,13 @@
 package uk.co.tmdavies.motdoftheday.utils;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.commons.io.IOUtils;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,11 +24,9 @@ public class ConfigFile {
             name = name + ".json";
         }
 
-        Path validatePath = Paths.get("").toAbsolutePath();
-
-        this.path = validatePath.toAbsolutePath() + "\\config\\motdoftheday";
+        this.path = "./config/motdoftheday";
         this.fileName = name;
-        this.file = new File(this.path + "\\" + this.fileName);
+        this.file = new File(this.path + "/" + this.fileName);
 
         checkDir();
         checkFile();
@@ -93,6 +91,7 @@ public class ConfigFile {
 
         motdSettings.add("Messages", messagesArray);
 
+        this.jsonObj.addProperty("_comment", "Default: 86400000 (in milliseconds)");
         this.jsonObj.add("MOTD", motdSettings);
 
         try (Writer writer = new FileWriter(this.path + "\\" + this.fileName)) {

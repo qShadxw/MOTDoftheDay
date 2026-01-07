@@ -8,23 +8,24 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class ConfigWatcher {
 
-    private final Path path;
+    private final String path;
     private static final long DEBOUNCE_MS = 200;
     private volatile long lastModified = 0;
 
     public ConfigWatcher(String path) {
-        this.path = Paths.get(path);
+        this.path = path;
     }
 
     public void watchFile() {
         MOTDoftheDay.LOGGER.info("Starting file watcher");
 
+        Path watcherPath = Paths.get(path);
         WatchService watchService;
 
         try {
             watchService = FileSystems.getDefault().newWatchService();
 
-            path.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            watcherPath.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
         } catch (IOException exception) {
             MOTDoftheDay.LOGGER.error("Failed to create or register watch service.");
             exception.printStackTrace();
