@@ -54,22 +54,16 @@ public class ConfigFile {
     }
 
     public void loadConfig() {
-        this.file = new File(this.path + "\\" + this.fileName);
+        this.file = new File(this.path + "/" + this.fileName);
 
         if (file.length() == 0) {
             setDefaults();
-
-            return;
         }
 
-        try (FileInputStream inputStream = new FileInputStream(this.path + "\\" + this.fileName)) {
+        try (FileInputStream inputStream = new FileInputStream(this.path + "/" + this.fileName)) {
             this.jsonObj = JsonParser.parseString(IOUtils.toString(inputStream, Charset.defaultCharset())).getAsJsonObject();
         } catch (IOException e) {
             MOTDoftheDay.LOGGER.error("Error loading config file. Continuing to create new...");
-        }
-
-        if (this.jsonObj == null || this.jsonObj.isEmpty()) {
-            setDefaults();
         }
 
         MOTDoftheDay.runChangeTask(getChangeInterval());
@@ -94,7 +88,7 @@ public class ConfigFile {
         this.jsonObj.addProperty("_comment", "Default: 86400000 (in milliseconds)");
         this.jsonObj.add("MOTD", motdSettings);
 
-        try (Writer writer = new FileWriter(this.path + "\\" + this.fileName)) {
+        try (Writer writer = new FileWriter(this.path + "/" + this.fileName)) {
             writer.write(this.jsonObj.toString());
         } catch (IOException exception) {
             MOTDoftheDay.LOGGER.error("Failed to write json file defaults.");

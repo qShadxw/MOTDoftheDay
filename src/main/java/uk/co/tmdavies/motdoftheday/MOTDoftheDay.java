@@ -46,15 +46,16 @@ public class MOTDoftheDay {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Loading MOTDoftheDay...");
-
-        configFile = new ConfigFile("config");
-        ConfigWatcher watcher = new ConfigWatcher("./config/motdoftheday");
-
-        watcher.watchFile();
     }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
+        configFile = new ConfigFile("config");
+        ConfigWatcher watcher = new ConfigWatcher("./config/motdoftheday");
+        minecraftServer = event.getServer();
+
+        configFile.loadConfig();
+
         if (!event.getServer().isDedicatedServer()) {
             LOGGER.error("MOTDoftheDay can only be ran on a dedicated server.");
 
@@ -75,8 +76,7 @@ public class MOTDoftheDay {
             return;
         }
 
-        minecraftServer = event.getServer();
-        configFile.loadConfig();
+        watcher.watchFile();
     }
 
     public static void setMotd(String newMotd) {
