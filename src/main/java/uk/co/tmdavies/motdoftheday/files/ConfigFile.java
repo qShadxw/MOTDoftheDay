@@ -1,13 +1,12 @@
-package uk.co.tmdavies.motdoftheday.utils;
+package uk.co.tmdavies.motdoftheday.files;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import org.apache.commons.io.IOUtils;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,7 +56,7 @@ public class ConfigFile {
         this.file = new File(this.path + "/" + this.fileName);
 
         if (file.length() == 0) {
-            setDefaults();
+            setConfigDefaults();
         }
 
         try (FileInputStream inputStream = new FileInputStream(this.path + "/" + this.fileName)) {
@@ -70,7 +69,9 @@ public class ConfigFile {
         verboseConfig();
     }
 
-    public void setDefaults() {
+    public void setConfigDefaults() {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
         this.jsonObj = new JsonObject();
         this.jsonObj.addProperty("Enabled", true);
 
@@ -85,11 +86,30 @@ public class ConfigFile {
 
         motdSettings.add("Messages", messagesArray);
 
-        this.jsonObj.addProperty("_comment", "Default: 86400000 (in milliseconds)");
+        JsonObject overrideSettings = new JsonObject();
+        overrideSettings.addProperty("_Comment", "These do not remember on start-up. You re-set them after restarting your server.");
+
+        JsonObject firstOverride = new JsonObject();
+        firstOverride.addProperty("Message", "This is a placeholder override, please replace.");
+        firstOverride.addProperty("Timestamp", Instant.now().getEpochSecond() + 10);
+        firstOverride.addProperty("_Comment", "Duration is in Milliseconds.");
+        firstOverride.addProperty("Duration", 10000);
+
+        JsonObject secondOverride = new JsonObject();
+        secondOverride.addProperty("Message", "Happy Easter.");
+        secondOverride.addProperty("Timestamp", 1775343600);
+        secondOverride.addProperty("_Comment", "Duration is in Milliseconds.");
+        secondOverride.addProperty("Duration", 86400);
+
+        overrideSettings.add("Placeholder", firstOverride);
+        overrideSettings.add("Easter", secondOverride);
+
+        this.jsonObj.addProperty("_Comment", "Default: 86400000 (in milliseconds)");
         this.jsonObj.add("MOTD", motdSettings);
+        this.jsonObj.add("Overrides", overrideSettings);
 
         try (Writer writer = new FileWriter(this.path + "/" + this.fileName)) {
-            writer.write(this.jsonObj.toString());
+            gson.toJson(this.jsonObj, writer);
         } catch (IOException exception) {
             MOTDoftheDay.LOGGER.error("Failed to write json file defaults.");
             exception.printStackTrace();
@@ -154,6 +174,21 @@ public class ConfigFile {
         return messages;
     }
 
+    public List<JsonObject> getOverrides() {
+        JsonObject overrides = jsonObj.getAsJsonObject("Overrides");
+        List<JsonObject> overrideList = new ArrayList<>();
+
+        overrides.keySet().forEach(keys -> {
+            if (keys.equals("_Comment")) {
+                return;
+            }
+
+            overrideList.add(overrides.getAsJsonObject(keys));
+        });
+
+        return overrideList;
+    }
+
     public void verboseConfig() {
         if (jsonObj == null) {
             return;
@@ -167,6 +202,13 @@ public class ConfigFile {
         MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled);
         MOTDoftheDay.LOGGER.info("ChangeInterval: " + changeInterval);
         MOTDoftheDay.LOGGER.info("Messages: " + messages);
+        MOTDoftheDay.LOGGER.info("Overrides >");
+        for (JsonObject object : getOverrides()) {
+            MOTDoftheDay.LOGGER.info("> Message: {}", object.get("Message").getAsString());
+            MOTDoftheDay.LOGGER.info("> Timestamp: {}", object.get("Timestamp").getAsString());
+            MOTDoftheDay.LOGGER.info("> Duration: {}", object.get("Duration").getAsString());
+            MOTDoftheDay.LOGGER.info("");
+        }
     }
 
 }

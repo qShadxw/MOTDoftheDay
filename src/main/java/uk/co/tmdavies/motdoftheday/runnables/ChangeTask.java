@@ -24,10 +24,10 @@ public class ChangeTask implements Runnable {
             }
 
             int index = random.nextInt(messages.size());
-            String newMOTD = messages.get(index);
+            MOTDoftheDay.currentMotd = messages.get(index);
 
-            MOTDoftheDay.setMotd(newMOTD);
-            MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMOTD);
+            MOTDoftheDay.setMotd(MOTDoftheDay.currentMotd);
+            MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", MOTDoftheDay.currentMotd);
         } catch (Exception exception) {
             MOTDoftheDay.LOGGER.error("Error in ChangeTask");
             exception.printStackTrace();

@@ -11,8 +11,8 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
-import uk.co.tmdavies.motdoftheday.utils.ConfigFile;
-import uk.co.tmdavies.motdoftheday.utils.ConfigWatcher;
+import uk.co.tmdavies.motdoftheday.files.ConfigFile;
+import uk.co.tmdavies.motdoftheday.files.ConfigWatcher;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,6 +35,7 @@ public class MOTDoftheDay {
 
     public static ConfigFile configFile;
     public static MinecraftServer minecraftServer;
+    public static String currentMotd;
 
     private static ScheduledFuture<?> changeTaskFuture;
 
@@ -77,6 +78,10 @@ public class MOTDoftheDay {
         }
 
         watcher.watchFile();
+    }
+
+    public static String getMotd() {
+        return minecraftServer.getMotd();
     }
 
     public static void setMotd(String newMotd) {
