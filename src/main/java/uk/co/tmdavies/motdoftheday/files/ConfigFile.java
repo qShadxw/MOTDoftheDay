@@ -1,13 +1,13 @@
-package uk.co.tmdavies.motdoftheday.utils;
+package uk.co.tmdavies.motdoftheday.files;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import org.apache.commons.io.IOUtils;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
+import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,7 +57,7 @@ public class ConfigFile {
         this.file = new File(this.path + "/" + this.fileName);
 
         if (file.length() == 0) {
-            setDefaults();
+            setConfigDefaults();
         }
 
         try (FileInputStream inputStream = new FileInputStream(this.path + "/" + this.fileName)) {
@@ -66,16 +66,21 @@ public class ConfigFile {
             MOTDoftheDay.LOGGER.error("Error loading config file. Continuing to create new...");
         }
 
-        MOTDoftheDay.runChangeTask(getChangeInterval());
+        long now = Instant.now().getEpochSecond();
+        MOTDoftheDay.nextIntervalTimestamp = now + getChangeInterval();
+
         verboseConfig();
+        MOTDoftheDay.runChangeTask();
     }
 
-    public void setDefaults() {
+    public void setConfigDefaults() {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
         this.jsonObj = new JsonObject();
         this.jsonObj.addProperty("Enabled", true);
 
         JsonObject motdSettings = new JsonObject();
-        motdSettings.addProperty("Interval", 86400000);
+        motdSettings.addProperty("Interval", 86400);
 
         JsonArray messagesArray = new JsonArray();
         messagesArray.add("MOTD");
@@ -85,11 +90,30 @@ public class ConfigFile {
 
         motdSettings.add("Messages", messagesArray);
 
-        this.jsonObj.addProperty("_comment", "Default: 86400000 (in milliseconds)");
+        JsonObject overrideSettings = new JsonObject();
+        overrideSettings.addProperty("_Comment", "These do not remember on start-up. You re-set them after restarting your server.");
+
+        JsonObject firstOverride = new JsonObject();
+        firstOverride.addProperty("Message", "This is a placeholder override, please replace.");
+        firstOverride.addProperty("Timestamp", Instant.now().getEpochSecond() + 30);
+        firstOverride.addProperty("_Comment", "Duration is in seconds.");
+        firstOverride.addProperty("Duration", 60);
+
+        JsonObject secondOverride = new JsonObject();
+        secondOverride.addProperty("Message", "Happy Easter.");
+        secondOverride.addProperty("Timestamp", 1775343600);
+        secondOverride.addProperty("_Comment", "Duration is in seconds.");
+        secondOverride.addProperty("Duration", 86400);
+
+        overrideSettings.add("Placeholder", firstOverride);
+        overrideSettings.add("Easter", secondOverride);
+
+        this.jsonObj.addProperty("_Comment", "Default: 86400 (in seconds)");
         this.jsonObj.add("MOTD", motdSettings);
+        this.jsonObj.add("Overrides", overrideSettings);
 
         try (Writer writer = new FileWriter(this.path + "/" + this.fileName)) {
-            writer.write(this.jsonObj.toString());
+            gson.toJson(this.jsonObj, writer);
         } catch (IOException exception) {
             MOTDoftheDay.LOGGER.error("Failed to write json file defaults.");
             exception.printStackTrace();
@@ -126,16 +150,16 @@ public class ConfigFile {
         return jsonObj.get("Enabled").getAsBoolean();
     }
 
-    public int getChangeInterval() {
+    public long getChangeInterval() {
         if (jsonObj == null) {
             MOTDoftheDay.LOGGER.error("Config was not loaded before grabbing data.");
 
-            return Integer.MAX_VALUE;
+            return Long.MAX_VALUE;
         }
 
         JsonObject motdSettings = jsonObj.getAsJsonObject("MOTD");
 
-        return motdSettings.get("Interval").getAsInt();
+        return motdSettings.get("Interval").getAsLong();
     }
 
     public List<String> getMessages() {
@@ -154,19 +178,38 @@ public class ConfigFile {
         return messages;
     }
 
+    public List<JsonObject> getOverrides() {
+        JsonObject overrides = jsonObj.getAsJsonObject("Overrides");
+        List<JsonObject> overrideList = new ArrayList<>();
+
+        overrides.keySet().forEach(keys -> {
+            if (keys.equals("_Comment")) {
+                return;
+            }
+
+            overrideList.add(overrides.getAsJsonObject(keys));
+        });
+
+        return overrideList;
+    }
+
     public void verboseConfig() {
         if (jsonObj == null) {
             return;
         }
 
-        boolean isModEnabled = isModEnabled();
-        int changeInterval = getChangeInterval();
-        List<String> messages = getMessages();
-
         MOTDoftheDay.LOGGER.info("Config Details:");
-        MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled);
-        MOTDoftheDay.LOGGER.info("ChangeInterval: " + changeInterval);
-        MOTDoftheDay.LOGGER.info("Messages: " + messages);
+        MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled());
+        MOTDoftheDay.LOGGER.info("ChangeInterval: " + getChangeInterval());
+        MOTDoftheDay.LOGGER.info("Messages: " + getMessages());
+        MOTDoftheDay.LOGGER.info("Overrides >");
+
+        for (JsonObject object : getOverrides()) {
+            MOTDoftheDay.LOGGER.info("> Message: {}", object.get("Message").getAsString());
+            MOTDoftheDay.LOGGER.info("> Timestamp: {}", object.get("Timestamp").getAsString());
+            MOTDoftheDay.LOGGER.info("> Duration: {}", object.get("Duration").getAsString());
+            MOTDoftheDay.LOGGER.info("");
+        }
     }
 
 }

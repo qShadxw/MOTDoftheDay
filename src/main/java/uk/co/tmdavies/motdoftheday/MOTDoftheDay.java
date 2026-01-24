@@ -11,8 +11,8 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
-import uk.co.tmdavies.motdoftheday.utils.ConfigFile;
-import uk.co.tmdavies.motdoftheday.utils.ConfigWatcher;
+import uk.co.tmdavies.motdoftheday.files.ConfigFile;
+import uk.co.tmdavies.motdoftheday.files.ConfigWatcher;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,8 +35,10 @@ public class MOTDoftheDay {
 
     public static ConfigFile configFile;
     public static MinecraftServer minecraftServer;
+    public static long nextIntervalTimestamp;
 
     private static ScheduledFuture<?> changeTaskFuture;
+    private static String currentMotd;
 
     public MOTDoftheDay(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::commonSetup);
@@ -79,11 +81,19 @@ public class MOTDoftheDay {
         watcher.watchFile();
     }
 
-    public static void setMotd(String newMotd) {
-        minecraftServer.setMotd(newMotd);
+    public static String getMotd() {
+        return currentMotd;
     }
 
-    public static void runChangeTask(int changeInterval) {
+    public static void setMotd(String motd) {
+        currentMotd = motd;
+    }
+
+    public static void updateServerMotd() {
+        minecraftServer.setMotd(currentMotd);
+    }
+
+    public static void runChangeTask() {
         if (changeTaskFuture != null && !changeTaskFuture.isCancelled()) {
             changeTaskFuture.cancel(false);
         }
@@ -91,8 +101,8 @@ public class MOTDoftheDay {
         changeTaskFuture = SCHEDULER.scheduleAtFixedRate(
                 new ChangeTask(),
                 0,
-                changeInterval,
-                TimeUnit.MILLISECONDS
+                1,
+                TimeUnit.SECONDS
         );
     }
 }

@@ -1,4 +1,4 @@
-package uk.co.tmdavies.motdoftheday.utils;
+package uk.co.tmdavies.motdoftheday.files;
 
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
