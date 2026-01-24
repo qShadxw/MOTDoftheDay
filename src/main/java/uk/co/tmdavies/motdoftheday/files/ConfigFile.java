@@ -3,6 +3,7 @@ package uk.co.tmdavies.motdoftheday.files;
 import com.google.gson.*;
 import org.apache.commons.io.IOUtils;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
+import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -65,8 +66,11 @@ public class ConfigFile {
             MOTDoftheDay.LOGGER.error("Error loading config file. Continuing to create new...");
         }
 
-        MOTDoftheDay.runChangeTask(getChangeInterval());
+        long now = Instant.now().getEpochSecond();
+        MOTDoftheDay.nextIntervalTimestamp = now + getChangeInterval();
+
         verboseConfig();
+        MOTDoftheDay.runChangeTask();
     }
 
     public void setConfigDefaults() {
@@ -76,7 +80,7 @@ public class ConfigFile {
         this.jsonObj.addProperty("Enabled", true);
 
         JsonObject motdSettings = new JsonObject();
-        motdSettings.addProperty("Interval", 86400000);
+        motdSettings.addProperty("Interval", 86400);
 
         JsonArray messagesArray = new JsonArray();
         messagesArray.add("MOTD");
@@ -91,20 +95,20 @@ public class ConfigFile {
 
         JsonObject firstOverride = new JsonObject();
         firstOverride.addProperty("Message", "This is a placeholder override, please replace.");
-        firstOverride.addProperty("Timestamp", Instant.now().getEpochSecond() + 10);
-        firstOverride.addProperty("_Comment", "Duration is in Milliseconds.");
-        firstOverride.addProperty("Duration", 10000);
+        firstOverride.addProperty("Timestamp", Instant.now().getEpochSecond() + 30);
+        firstOverride.addProperty("_Comment", "Duration is in seconds.");
+        firstOverride.addProperty("Duration", 60);
 
         JsonObject secondOverride = new JsonObject();
         secondOverride.addProperty("Message", "Happy Easter.");
         secondOverride.addProperty("Timestamp", 1775343600);
-        secondOverride.addProperty("_Comment", "Duration is in Milliseconds.");
+        secondOverride.addProperty("_Comment", "Duration is in seconds.");
         secondOverride.addProperty("Duration", 86400);
 
         overrideSettings.add("Placeholder", firstOverride);
         overrideSettings.add("Easter", secondOverride);
 
-        this.jsonObj.addProperty("_Comment", "Default: 86400000 (in milliseconds)");
+        this.jsonObj.addProperty("_Comment", "Default: 86400 (in seconds)");
         this.jsonObj.add("MOTD", motdSettings);
         this.jsonObj.add("Overrides", overrideSettings);
 
@@ -146,16 +150,16 @@ public class ConfigFile {
         return jsonObj.get("Enabled").getAsBoolean();
     }
 
-    public int getChangeInterval() {
+    public long getChangeInterval() {
         if (jsonObj == null) {
             MOTDoftheDay.LOGGER.error("Config was not loaded before grabbing data.");
 
-            return Integer.MAX_VALUE;
+            return Long.MAX_VALUE;
         }
 
         JsonObject motdSettings = jsonObj.getAsJsonObject("MOTD");
 
-        return motdSettings.get("Interval").getAsInt();
+        return motdSettings.get("Interval").getAsLong();
     }
 
     public List<String> getMessages() {
@@ -194,15 +198,12 @@ public class ConfigFile {
             return;
         }
 
-        boolean isModEnabled = isModEnabled();
-        int changeInterval = getChangeInterval();
-        List<String> messages = getMessages();
-
         MOTDoftheDay.LOGGER.info("Config Details:");
-        MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled);
-        MOTDoftheDay.LOGGER.info("ChangeInterval: " + changeInterval);
-        MOTDoftheDay.LOGGER.info("Messages: " + messages);
+        MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled());
+        MOTDoftheDay.LOGGER.info("ChangeInterval: " + getChangeInterval());
+        MOTDoftheDay.LOGGER.info("Messages: " + getMessages());
         MOTDoftheDay.LOGGER.info("Overrides >");
+
         for (JsonObject object : getOverrides()) {
             MOTDoftheDay.LOGGER.info("> Message: {}", object.get("Message").getAsString());
             MOTDoftheDay.LOGGER.info("> Timestamp: {}", object.get("Timestamp").getAsString());
