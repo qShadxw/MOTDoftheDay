@@ -222,7 +222,13 @@ public class ConfigFile {
         JsonArray messagesArray = motdSettings.get("Messages").getAsJsonArray();
         List<String> messages = new ArrayList<>();
 
-        messagesArray.forEach(message -> messages.add(message.getAsString()));
+        messagesArray.forEach(message -> {
+            if (message.isJsonNull()) {
+                return;
+            }
+
+            messages.add(message.getAsString());
+        });
 
         return messages;
     }
