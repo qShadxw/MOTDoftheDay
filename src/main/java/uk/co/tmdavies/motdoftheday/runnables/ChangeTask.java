@@ -4,11 +4,11 @@ import com.google.gson.JsonObject;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ChangeTask implements Runnable {
-
     private static final ThreadLocalRandom random = ThreadLocalRandom.current();
     private static boolean overrideActive = false;
 
@@ -38,11 +38,16 @@ public class ChangeTask implements Runnable {
                 List<String> messages = MOTDoftheDay.configFile.getMessages();
 
                 if (messages != null && !messages.isEmpty()) {
-                    int index = random.nextInt(messages.size());
-                    newMotd = messages.get(index);
-                }
+                    String current = MOTDoftheDay.getMotd();
+                    List<String> candidates = new ArrayList<>(messages);
+                    candidates.removeIf(message -> message.equals(current));
 
-                MOTDoftheDay.nextIntervalTimestamp = now + MOTDoftheDay.configFile.getChangeInterval();
+                    if (candidates.isEmpty()) {
+                        candidates = messages;
+                    }
+
+                    newMotd = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                }
             }
 
             if (newMotd != null && !newMotd.equals(MOTDoftheDay.getMotd())) {

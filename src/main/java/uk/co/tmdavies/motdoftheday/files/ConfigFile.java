@@ -3,11 +3,13 @@ package uk.co.tmdavies.motdoftheday.files;
 import com.google.gson.*;
 import org.apache.commons.io.IOUtils;
 import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
-import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,7 +69,7 @@ public class ConfigFile {
         }
 
         long now = Instant.now().getEpochSecond();
-        MOTDoftheDay.nextIntervalTimestamp = now + getChangeInterval();
+        MOTDoftheDay.nextIntervalTimestamp = getNextChangeTimestamp(now);
 
         verboseConfig();
         MOTDoftheDay.runChangeTask();
@@ -81,6 +83,8 @@ public class ConfigFile {
 
         JsonObject motdSettings = new JsonObject();
         motdSettings.addProperty("Interval", 86400);
+        motdSettings.addProperty("AlignToMidnight", true);
+        motdSettings.addProperty("TimeZone", "");
 
         JsonArray messagesArray = new JsonArray();
         messagesArray.add("MOTD");
@@ -162,6 +166,51 @@ public class ConfigFile {
         return motdSettings.get("Interval").getAsLong();
     }
 
+    public boolean isAlignedToMidnight() {
+        if (jsonObj == null) {
+            return true;
+        }
+
+        JsonElement element = jsonObj.getAsJsonObject("MOTD").get("AlignToMidnight");
+
+        return element == null || element.getAsBoolean();
+    }
+
+    public ZoneId getZoneId() {
+        if (jsonObj != null) {
+            JsonElement element = jsonObj.getAsJsonObject("MOTD").get("TimeZone");
+            String zoneName = element == null ? "" : element.getAsString().trim();
+
+            if (!zoneName.isEmpty()) {
+                try {
+                    return ZoneId.of(zoneName);
+                } catch (DateTimeException exception) {
+                    MOTDoftheDay.LOGGER.warn("Invalid TimeZone '{}' in config, using the server's timezone.", zoneName);
+                }
+            }
+        }
+
+        return ZoneId.systemDefault();
+    }
+
+    public long getNextChangeTimestamp(long nowEpochSeconds) {
+        long interval = getChangeInterval();
+
+        if (jsonObj == null || !isAlignedToMidnight() || interval < 86400L) {
+            return nowEpochSeconds + interval;
+        }
+
+        return nextMidnight(nowEpochSeconds, interval, getZoneId());
+    }
+
+    /** Pure helper (no config access) so the maths can be tested on its own. */
+    static long nextMidnight(long nowEpochSeconds, long intervalSeconds, ZoneId zone) {
+        long days = Math.max(1L, intervalSeconds / 86400L);
+        ZonedDateTime now = Instant.ofEpochSecond(nowEpochSeconds).atZone(zone);
+
+        return now.toLocalDate().plusDays(days).atStartOfDay(zone).toEpochSecond();
+    }
+
     public List<String> getMessages() {
         if (jsonObj == null) {
             MOTDoftheDay.LOGGER.error("Config was not loaded before grabbing data.");
@@ -201,6 +250,9 @@ public class ConfigFile {
         MOTDoftheDay.LOGGER.info("Config Details:");
         MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled());
         MOTDoftheDay.LOGGER.info("ChangeInterval: " + getChangeInterval());
+        MOTDoftheDay.LOGGER.info("AlignToMidnight: " + isAlignedToMidnight());
+        MOTDoftheDay.LOGGER.info("TimeZone: " + getZoneId());
+        MOTDoftheDay.LOGGER.info("Next change at: " + Instant.ofEpochSecond(getNextChangeTimestamp(Instant.now().getEpochSecond())).atZone(getZoneId()));
         MOTDoftheDay.LOGGER.info("Messages: " + getMessages());
         MOTDoftheDay.LOGGER.info("Overrides >");
 
