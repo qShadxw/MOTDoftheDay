@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ChangeTask implements Runnable {
-    private static final ThreadLocalRandom random = ThreadLocalRandom.current();
     private static boolean overrideActive = false;
 
     @Override
@@ -53,6 +52,10 @@ public class ChangeTask implements Runnable {
             if (newMotd != null && !newMotd.equals(MOTDoftheDay.getMotd())) {
                 MOTDoftheDay.setMotd(newMotd);
                 MOTDoftheDay.updateServerMotd();
+
+                MOTDoftheDay.nextIntervalTimestamp = MOTDoftheDay.configFile.getNextChangeTimestamp(Instant.now().getEpochSecond());
+
+                MOTDoftheDay.LOGGER.info("Next Interval Timestamp {}.", MOTDoftheDay.nextIntervalTimestamp);
                 MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMotd);
             }
 

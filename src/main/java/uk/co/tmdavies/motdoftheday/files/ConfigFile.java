@@ -254,12 +254,12 @@ public class ConfigFile {
         }
 
         MOTDoftheDay.LOGGER.info("Config Details:");
-        MOTDoftheDay.LOGGER.info("IsModEnabled: " + isModEnabled());
-        MOTDoftheDay.LOGGER.info("ChangeInterval: " + getChangeInterval());
-        MOTDoftheDay.LOGGER.info("AlignToMidnight: " + isAlignedToMidnight());
-        MOTDoftheDay.LOGGER.info("TimeZone: " + getZoneId());
-        MOTDoftheDay.LOGGER.info("Next change at: " + Instant.ofEpochSecond(getNextChangeTimestamp(Instant.now().getEpochSecond())).atZone(getZoneId()));
-        MOTDoftheDay.LOGGER.info("Messages: " + getMessages());
+        MOTDoftheDay.LOGGER.info("IsModEnabled: {}", isModEnabled());
+        MOTDoftheDay.LOGGER.info("ChangeInterval: {}", getChangeInterval());
+        MOTDoftheDay.LOGGER.info("AlignToMidnight: {}", isAlignedToMidnight());
+        MOTDoftheDay.LOGGER.info("TimeZone: {}", getZoneId());
+        MOTDoftheDay.LOGGER.info("Next change at: {}", Instant.ofEpochSecond(getNextChangeTimestamp(Instant.now().getEpochSecond())).atZone(getZoneId()));
+        MOTDoftheDay.LOGGER.info("Messages: {}", getMessages());
         MOTDoftheDay.LOGGER.info("Overrides >");
 
         for (JsonObject object : getOverrides()) {
