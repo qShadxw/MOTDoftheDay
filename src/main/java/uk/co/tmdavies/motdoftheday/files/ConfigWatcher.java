@@ -4,7 +4,6 @@ import uk.co.tmdavies.motdoftheday.MOTDoftheDay;
 
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class ConfigWatcher {
 
@@ -33,15 +32,14 @@ public class ConfigWatcher {
             return;
         }
 
-        AtomicLong lastModified = new AtomicLong(0);
-        Thread watcherThread = new Thread(() -> watchLoop(watchService, lastModified));
+        Thread watcherThread = new Thread(() -> watchLoop(watchService));
 
         watcherThread.setDaemon(true);
         watcherThread.setName("ConfigFile-Watcher");
         watcherThread.start();
     }
 
-    private void watchLoop(WatchService watchService, AtomicLong lastModified) {
+    private void watchLoop(WatchService watchService) {
         while (true) {
             try {
                 WatchKey key = watchService.take();
@@ -51,22 +49,18 @@ public class ConfigWatcher {
                         .map(Object::toString)
                         .filter("config.json"::equals)
                         .findFirst()
-                        .ifPresent(s -> {
-                            long now = System.currentTimeMillis();
-                            if (now - lastModified.get() >= 200L) {
-                                lastModified.set(now);
-                                configFileChanged();
-                            }
-                        });
+                        .ifPresent(s -> configFileChanged());
 
                 if (!key.reset()) {
                     MOTDoftheDay.LOGGER.warn("Watch key no longer valid. Exiting watcher thread.");
+
                     break;
                 }
             } catch (InterruptedException exception) {
                 MOTDoftheDay.LOGGER.error("File watcher thread interrupted.");
                 exception.printStackTrace();
                 Thread.currentThread().interrupt();
+
                 break;
             }
         }

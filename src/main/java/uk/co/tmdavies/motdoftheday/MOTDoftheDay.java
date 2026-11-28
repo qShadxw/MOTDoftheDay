@@ -10,9 +10,9 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
-import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
 import uk.co.tmdavies.motdoftheday.files.ConfigFile;
 import uk.co.tmdavies.motdoftheday.files.ConfigWatcher;
+import uk.co.tmdavies.motdoftheday.runnables.ChangeTask;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,7 +36,7 @@ public class MOTDoftheDay {
 
     public static ConfigFile configFile;
     public static MinecraftServer minecraftServer;
-    public static long nextIntervalTimestamp;
+    public static volatile long nextIntervalTimestamp;
 
     private static ScheduledFuture<?> changeTaskFuture;
     private static String currentMotd;
@@ -73,7 +73,7 @@ public class MOTDoftheDay {
         }
 
         if (!configFile.isModEnabled()) {
-            LOGGER.error("MOTDoftheDay is enabled in config.");
+            LOGGER.error("MOTDoftheDay is disabled in config.");
 
             NeoForge.EVENT_BUS.unregister(this);
             changeTaskFuture.cancel(true);

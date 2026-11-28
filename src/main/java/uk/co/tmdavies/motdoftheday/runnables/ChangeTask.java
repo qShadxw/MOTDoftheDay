@@ -34,6 +34,11 @@ public class ChangeTask implements Runnable {
             }
 
             if (!currentlyInOverride && (now >= MOTDoftheDay.nextIntervalTimestamp || MOTDoftheDay.getMotd() == null || overrideActive)) {
+                if (now >= MOTDoftheDay.nextIntervalTimestamp) {
+                    MOTDoftheDay.nextIntervalTimestamp = MOTDoftheDay.configFile.getNextChangeTimestamp(now);
+                    MOTDoftheDay.LOGGER.info("Next Interval Timestamp {}.", MOTDoftheDay.nextIntervalTimestamp);
+                }
+
                 List<String> messages = MOTDoftheDay.configFile.getMessages();
 
                 if (messages != null && !messages.isEmpty()) {
@@ -52,10 +57,6 @@ public class ChangeTask implements Runnable {
             if (newMotd != null && !newMotd.equals(MOTDoftheDay.getMotd())) {
                 MOTDoftheDay.setMotd(newMotd);
                 MOTDoftheDay.updateServerMotd();
-
-                MOTDoftheDay.nextIntervalTimestamp = MOTDoftheDay.configFile.getNextChangeTimestamp(Instant.now().getEpochSecond());
-
-                MOTDoftheDay.LOGGER.info("Next Interval Timestamp {}.", MOTDoftheDay.nextIntervalTimestamp);
                 MOTDoftheDay.LOGGER.info("Changing MOTD to {}.", newMotd);
             }
 
